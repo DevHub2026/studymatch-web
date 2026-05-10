@@ -1,5 +1,5 @@
-import * as useState from 'react';
-import * as useNavigate from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as profileApi from '../api/profile';
 import { saveAuth, getToken } from '../store/authStore';
 

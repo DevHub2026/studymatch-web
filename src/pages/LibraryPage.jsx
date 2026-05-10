@@ -15,7 +15,6 @@
  * 1. Users upload files with title, subject, description
  * 2. Files are stored and shared with matched partners
  * 3. Users can browse and download resources
- * 4. Note: Backend storage implementation pending
  */
 
 import { useState, useEffect } from 'react';
@@ -54,10 +53,15 @@ export default function LibraryPage() {
   useEffect(() => {
     const loadResources = async () => {
       try {
-        const data = await libraryApi.getResources();
-        setResources(data.resources || []);
+        const response = await libraryApi.getResources();
+        console.log('Library API response:', response);
+        
+        // Correct: axios wraps the response, so it's response.data.data
+        const resourcesData = response.data?.data || [];
+        setResources(Array.isArray(resourcesData) ? resourcesData : []);
       } catch (error) {
         console.error('Failed to fetch resources:', error);
+        setResources([]);
       } finally {
         setLoading(false);
       }
@@ -110,21 +114,27 @@ export default function LibraryPage() {
     setUploadErrors({});
     
     try {
-      await libraryApi.uploadResource(
-        uploadForm.file,
-        uploadForm.title,
-        uploadForm.subject,
-        uploadForm.description
-      );
+      // Create FormData object
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('title', uploadForm.title);
+      formData.append('subject', uploadForm.subject || '');
+      formData.append('description', uploadForm.description || '');
+      
+      // Upload the file
+      const response = await libraryApi.uploadResource(formData);
       
       alert('File uploaded successfully!');
+      
+      // Add the new resource to the list - FIXED: extract from response.data
+      const newResource = response.data?.resource || response.resource;
+      if (newResource) {
+        setResources(prev => [newResource, ...prev]);
+      }
       
       // Reset form and close modal
       setUploadForm({ file: null, title: '', subject: '', description: '' });
       setShowUploadModal(false);
-      
-      // Reload resources
-      window.location.reload();
       
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -184,25 +194,27 @@ export default function LibraryPage() {
   /**
    * Filter resources based on search and subject
    */
-  const filteredResources = resources.filter(resource => {
+  const filteredResources = Array.isArray(resources) ? resources.filter(resource => {
     // Search filter
-    if (searchQuery && !resource.title?.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !resource.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchQuery && !resource?.title?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !resource?.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
     
     // Subject filter
-    if (selectedSubject && resource.subject !== selectedSubject) {
+    if (selectedSubject && resource?.subject !== selectedSubject) {
       return false;
     }
     
     return true;
-  });
+  }) : [];
 
   /**
    * Get unique subjects from resources for filter dropdown
    */
-  const uniqueSubjects = [...new Set(resources.map(r => r.subject).filter(Boolean))];
+  const uniqueSubjects = Array.isArray(resources) 
+    ? [...new Set(resources.map(r => r?.subject).filter(Boolean))]
+    : [];
 
   // Loading state
   if (loading) {
@@ -235,10 +247,9 @@ export default function LibraryPage() {
         <div className="flex items-start gap-3">
           <div className="text-2xl">ℹ️</div>
           <div>
-            <h3 className="text-lg font-bold text-blue-100 mb-1">Note</h3>
+            <h3 className="text-lg font-bold text-blue-100 mb-1">Resource Sharing</h3>
             <p className="text-blue-200 text-sm">
-              Library feature is currently in development. File storage and retrieval will be available soon. 
-              You can upload files, but they may not persist yet.
+              Upload study materials to share with your study partners. Supported formats: PDF, DOC, PPT, XLS, images.
             </p>
           </div>
         </div>
@@ -313,13 +324,13 @@ export default function LibraryPage() {
             <Card key={resource.id} hover>
               {/* File Icon & Title */}
               <div className="flex items-start gap-3 mb-4">
-                <div className="text-4xl">{getFileIcon(resource.file_name)}</div>
+                <div className="text-4xl">{getFileIcon(resource.filename)}</div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-white mb-1 line-clamp-2">
                     {resource.title}
                   </h3>
                   <p className="text-gray-400 text-sm truncate">
-                    {resource.file_name}
+                    {resource.filename}
                   </p>
                 </div>
               </div>
