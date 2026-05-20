@@ -1,73 +1,190 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { isAuthenticated } from './store/authStore';
-import MainLayout from './components/layout/MainLayout';
-import Sidebar from './components/layout/Sidebar';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { getUser } from './store/authStore'
 
-// Import all pages
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardPage from './pages/DashboardPage';
-import ProfileSetupPage from './pages/ProfileSetupPage';
-import PartnersPage from './pages/PartnersPage';
-import MatchRequestsPage from './pages/MatchRequestsPage';
-import ChatPage from './pages/ChatPage';
-import ChatConversationPage from './pages/ChatConversationPage';
-import LibraryPage from './pages/LibraryPage';
-import AnnouncementsPage from './pages/AnnouncementsPage';
-import NotificationsPage from './pages/NotificationsPage';
-import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import HelpCenterPage from './pages/HelpCenterPage';
-import FeedbackPage from './pages/FeedbackPage';
-import ComplaintsPage from './pages/ComplaintsPage';
+// Auth pages
+import LoginPage          from './pages/auth/LoginPage'
+import RegisterPage       from './pages/auth/RegisterPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage  from './pages/auth/ResetPasswordPage'
+import VerifyEmailPage    from './pages/auth/VerifyEmailPage'
+import ProfileSetupPage   from './pages/auth/ProfileSetupPage'
 
-function ProtectedRoute({ children }) {
-  return isAuthenticated() ? children : <Navigate to="/login" />;
+// Layouts
+import StudentLayout from './components/layout/StudentLayout'
+import TutorLayout   from './components/layout/tutor/TutorLayout'
+import AdminLayout   from './components/layout/AdminLayout'
+
+// Route guards
+import AdminRoute from './routes/AdminRoute'
+
+// ── Student pages ──
+import StudentDashboard  from './pages/student/DashboardPage'
+import FindTutorsPage    from './pages/student/FindTutorsPage'
+import StudentMessages   from './pages/student/MessagesPage'
+import MySubjectsPage    from './pages/student/MySubjectPages'    // exact: MySubjectPages.jsx
+import StudentProfile    from './pages/student/ProfilePage'
+import StudentResources  from './pages/student/ResourcesPage'
+import StudentSchedule   from './pages/student/SchedulePage'
+import StudentSettings   from './pages/student/SettingsPage'
+import StudentSessions   from './pages/student/StudySessionsPage'
+
+// ── Tutor pages ──
+import TutorDashboard    from './pages/tutor/DashboardPage'
+import FindStudentsPage  from './pages/tutor/FindStudentsPage'
+import TutorMessages     from './pages/tutor/MessagesPage'
+import TutorProfile      from './pages/tutor/ProfilePage'
+import TutorResources    from './pages/tutor/ResourcesPage'
+import TutorSchedule     from './pages/tutor/SchedulePage'
+import TutorSettings     from './pages/tutor/SettingsPage'
+import TutorSessions     from './pages/tutor/StudySessionsPage'
+
+// ── Shared pages (exact filenames) ──
+import AnnouncementsPage     from './pages/shared/AnnouncementsPage'
+import AppearancePage        from './pages/shared/AppearancePage'        // exact: ApperancePage.jsx
+import ComplaintsPage        from './pages/shared/ComplaintsPage'
+import FeedbackPage          from './pages/shared/FeedbackPage'
+import HelpCenterPage        from './pages/shared/HelpCenterPage'
+import NotificationsPage     from './pages/shared/NotificationsPage'
+import PreferencesPage       from './pages/shared/PreferencesPage'
+import PrivacyPage           from './pages/shared/PrivacyPage'
+
+// ── Admin pages ──
+import AdminDashboard      from './pages/admin/DashboardPage'
+import ManageAnnouncements from './pages/admin/ManageAnnouncementsPage'
+import ReportsPage         from './pages/admin/ReportsPage'
+import AdminResources      from './pages/admin/ResourcesPage'
+import AdminSettings       from './pages/admin/SettingsPage'
+import TutorsPage          from './pages/admin/TutorsPage'
+import UsersPage           from './pages/admin/UsersPage'
+
+/* ─── root redirect ──────────────────────────────────────────── */
+
+function RootRedirect() {
+  const user = getUser()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role === 'student') return <Navigate to="/student/dashboard" replace />
+  if (user.role === 'tutor')   return <Navigate to="/tutor/dashboard"   replace />
+  if (user.role === 'admin')   return <Navigate to="/admin/dashboard"   replace />
+  return <Navigate to="/login" replace />
 }
 
-function PublicRoute({ children }) {
-  return !isAuthenticated() ? children : <Navigate to="/dashboard" />;
+/* ─── guards ─────────────────────────────────────────────────── */
+
+function StudentRoute({ children }) {
+  const user = getUser()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'student') return <Navigate to="/" replace />
+  return children
 }
 
-function App() {
-  const showSidebar = isAuthenticated(); // Only show sidebar when logged in
-
-  return (
-    <Router>
-      {showSidebar && <Sidebar />} {/* Add sidebar here */}
-      
-      <Routes>
-        {/* Public Routes - NO MainLayout wrapper */}
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-        <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
-        <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
-
-        {/* Protected Routes with MainLayout */}
-        <Route path="/dashboard" element={<ProtectedRoute><MainLayout><DashboardPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/profile-setup" element={<ProtectedRoute><MainLayout><ProfileSetupPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/partners" element={<ProtectedRoute><MainLayout><PartnersPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/requests" element={<ProtectedRoute><MainLayout><MatchRequestsPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><MainLayout><ChatPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/chat/:partnerId" element={<ProtectedRoute><MainLayout><ChatConversationPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/library" element={<ProtectedRoute><MainLayout><LibraryPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/announcements" element={<ProtectedRoute><MainLayout><AnnouncementsPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><MainLayout><NotificationsPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><MainLayout><SettingsPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/help" element={<ProtectedRoute><MainLayout><HelpCenterPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/feedback" element={<ProtectedRoute><MainLayout><FeedbackPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/complaints" element={<ProtectedRoute><MainLayout><ComplaintsPage /></MainLayout></ProtectedRoute>} />
-
-        {/* Redirect root to dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-      </Routes>
-    </Router>
-  );
+function TutorRoute({ children }) {
+  const user = getUser()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'tutor') return <Navigate to="/" replace />
+  return children
 }
 
-export default App;
+/* ─── router ─────────────────────────────────────────────────── */
+
+const router = createBrowserRouter([
+
+  /* root */
+  { path: '/', element: <RootRedirect /> },
+
+  /* ── Auth ── */
+  { path: '/login',           element: <LoginPage />          },
+  { path: '/register',        element: <RegisterPage />       },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password',  element: <ResetPasswordPage />  },
+  { path: '/verify-email',    element: <VerifyEmailPage />    },
+  { path: '/profile-setup',   element: <ProfileSetupPage />   },
+
+  /* ── Student ── */
+  {
+    path: '/student',
+    element: <StudentRoute><StudentLayout /></StudentRoute>,
+    children: [
+      { index: true,            element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard',      element: <StudentDashboard />  },
+      { path: 'find-tutors',    element: <FindTutorsPage />    },
+      { path: 'study-sessions', element: <StudentSessions />   },
+      { path: 'my-subjects',    element: <MySubjectsPage />    },
+      { path: 'messages',       element: <StudentMessages />   },
+      { path: 'resources',      element: <StudentResources />  },
+      { path: 'schedule',       element: <StudentSchedule />   },
+      { path: 'profile',        element: <StudentProfile />    },
+      { path: 'notifications',  element: <NotificationsPage /> },
+      { path: 'announcements',  element: <AnnouncementsPage /> },
+      { path: 'help',           element: <HelpCenterPage />    },
+      { path: 'feedback',       element: <FeedbackPage />      },
+      { path: 'complaints',     element: <ComplaintsPage />    },
+      {
+        path: 'settings',
+        element: <StudentSettings />,
+        children: [
+          { path: 'notifications', element: <NotificationsPage /> },
+          { path: 'privacy',       element: <PrivacyPage />       },
+          { path: 'preferences',   element: <PreferencesPage />   },
+          { path: 'appearance',    element: <AppearancePage />    },
+        ],
+      },
+      { path: '*', element: <Navigate to="dashboard" replace /> },
+    ],
+  },
+
+  /* ── Tutor ── */
+  {
+    path: '/tutor',
+    element: <TutorRoute><TutorLayout /></TutorRoute>,
+    children: [
+      { index: true,            element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard',      element: <TutorDashboard />    },
+      { path: 'find-students',  element: <FindStudentsPage />  },
+      { path: 'study-sessions', element: <TutorSessions />     },
+      { path: 'messages',       element: <TutorMessages />     },
+      { path: 'resources',      element: <TutorResources />    },
+      { path: 'schedule',       element: <TutorSchedule />     },
+      { path: 'profile',        element: <TutorProfile />      },
+      { path: 'notifications',  element: <NotificationsPage /> },
+      { path: 'announcements',  element: <AnnouncementsPage /> },
+      { path: 'help',           element: <HelpCenterPage />    },
+      { path: 'feedback',       element: <FeedbackPage />      },
+      { path: 'complaints',     element: <ComplaintsPage />    },
+      {
+        path: 'settings',
+        element: <TutorSettings />,
+        children: [
+          { path: 'notifications', element: <NotificationsPage /> },
+          { path: 'privacy',       element: <PrivacyPage />       },
+          { path: 'preferences',   element: <PreferencesPage />   },
+          { path: 'appearance',    element: <AppearancePage />    },
+        ],
+      },
+      { path: '*', element: <Navigate to="dashboard" replace /> },
+    ],
+  },
+
+  /* ── Admin ── */
+  {
+    path: '/admin',
+    element: <AdminRoute><AdminLayout /></AdminRoute>,
+    children: [
+      { index: true,           element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard',     element: <AdminDashboard />      },
+      { path: 'announcements', element: <ManageAnnouncements /> },
+      { path: 'reports',       element: <ReportsPage />         },
+      { path: 'resources',     element: <AdminResources />      },
+      { path: 'settings',      element: <AdminSettings />       },
+      { path: 'tutors',        element: <TutorsPage />          },
+      { path: 'users',         element: <UsersPage />           },
+      { path: '*',             element: <Navigate to="dashboard" replace /> },
+    ],
+  },
+
+  /* catch-all */
+  { path: '*', element: <RootRedirect /> },
+])
+
+export default function App() {
+  return <RouterProvider router={router} />
+}

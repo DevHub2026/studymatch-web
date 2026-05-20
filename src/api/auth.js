@@ -12,8 +12,11 @@ export const logout = () =>
 export const getMe = () =>
   api.get('/auth/me')
 
-export const verifyEmail = (otp) =>
+export const verifyOtp = (otp) =>
   api.post('/auth/verify-email', { otp })
+
+export const sendOtp = () =>
+  api.post('/auth/resend-verification')
 
 export const resendVerification = () =>
   api.post('/auth/resend-verification')
